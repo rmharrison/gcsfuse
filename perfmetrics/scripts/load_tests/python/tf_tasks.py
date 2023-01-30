@@ -8,7 +8,7 @@ class ReadFromOSTask(task.LoadTestTask):
   FILE_SIZE = 200 * 1024 * 1024
 
   def task(self, assigned_process_id, assigned_thread_id):
-    filepath = self.FILEPATH.format(process_id=assigned_process_id)
+    filepath = self.FILE_PATH.format(process_id=assigned_process_id)
     my_file = os.open(filepath, os.O_DIRECT)
     content = os.read(my_file, self.FILE_SIZE)
     os.close(my_file)

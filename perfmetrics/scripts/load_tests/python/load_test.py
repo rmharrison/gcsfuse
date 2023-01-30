@@ -41,9 +41,9 @@ def parse_args():
 
 def main():
   args = parse_args()
+  args.task_file_path = args.task_file_path.replace(".py", "")
   lg_obj = lg.LoadGenerator(args.num_processes, args.num_threads, args.run_time, 1, args.num_tasks_per_thread, args.num_tasks)
   for name, cls in inspect.getmembers(importlib.import_module(args.task_file_path), inspect.isclass):
-    print(name)
     if cls.__module__ != args.task_file_path:
       continue
     print(name)
