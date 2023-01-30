@@ -15,7 +15,7 @@ class ReadFromOSTask(task.LoadTestTask):
     return len(content)
 
   def post_load_test(self, **kwargs):
-    default_results = self.post_load_test(**kwargs)
+    default_results = super().post_load_test(**kwargs)
     metrics = default_results['metrics']
 
     # compute bandwidth from task results
