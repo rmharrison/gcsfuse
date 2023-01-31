@@ -58,7 +58,7 @@ class LoadTestTask:
     # cpu stats
     cpu_pts = [np.mean(all_cpus_per) for all_cpus_per in kwargs['cpu_per_pts']]
     cpu_lat_pers = self._compute_percentiles(cpu_pts)
-    avg_cpu_usage = np.mean(cpu_lat_pers)
+    avg_cpu_usage = np.mean(cpu_pts)
 
     # upload and download bw stats
     upload_io_pts = []
@@ -75,7 +75,7 @@ class LoadTestTask:
     download_bw_pts = [0] + [(download_io_pts[idx + 1] - download_io_pts[idx]) / (time_pts[idx + 1] - time_pts[idx]) for idx in range(len(time_pts) - 1)]
     avg_upload_bw = (upload_io_pts[-1] - upload_io_pts[0]) / actual_run_time
     avg_download_bw = (download_io_pts[-1] - download_io_pts[0]) / actual_run_time
-    
+
     # task latency stats
     task_lat_pts = [result[3] - result[2] for result in kwargs['tasks_results_queue']]
     task_lat_pers = self._compute_percentiles(task_lat_pts)
@@ -86,7 +86,6 @@ class LoadTestTask:
             'avg_cpu_usage': avg_cpu_usage}
 
   def _dump_results_into_json(self, results, output_dir):
-    output_dir = os.path.join('output_dir', self.TASK_NAME, "")
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
 
@@ -103,7 +102,8 @@ class LoadTestTask:
                                              [metrics['cpu_pts']],
                                              'CPU Usage (%)', 'time (sec)',
                                              '%', ['CPU'])
-    output_dir = kwargs['output_dir']
+
+    output_dir = os.path.join(kwargs['output_dir'], self.TASK_NAME, "")
     self._dump_results_into_json(metrics, output_dir)
     bw_fig.savefig(os.path.join(output_dir, 'bandwidth.png'))
     cpu_fig.savefig(os.path.join(output_dir, 'cpu.png'))

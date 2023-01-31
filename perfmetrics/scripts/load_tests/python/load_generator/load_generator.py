@@ -5,81 +5,87 @@ import os
 import time
 import threading
 import argparse
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 import warnings
 import psutil
 import numpy as np
 import pandas as pd
 from datetime import datetime, timezone
+from absl import logging
 
+MIN_RUN_TIME_IN_SECS = 4
+MIN_OBSERVATION_INTERVAL_IN_SECS = 2
 
 def _convert_multiprocessing_queue_to_list(mp_queue):
   queue_size = mp_queue.qsize()
   return [mp_queue.get() for _ in range(queue_size)]
 
-
 class LoadGenerator:
 
-  CPU_PERCENT_INTERVAL = 1
-
-  def __init__(self, num_processes, num_threads, run_time, time_based=1, num_tasks_per_thread=1, num_tasks=-1):
+  def __init__(self, num_processes, num_threads, run_time=sys.maxsize,
+      num_tasks_per_thread=sys.maxsize, num_tasks=sys.maxsize,
+      observation_interval=MIN_OBSERVATION_INTERVAL_IN_SECS):
     self.num_processes = num_processes
     self.num_threads = num_threads
-    self.run_time = run_time
-    self.time_based = time_based
-    self.num_tasks_per_thread = num_tasks_per_thread
-    self.num_tasks = num_tasks
-    # self.thread_queues = [[multiprocessing.Manager().Queue()] * num_threads] * num_processes
-    # self.tasks_results_queue = multiprocessing.Manager().Queue()
-    # self.pre_tasks_results_queue = multiprocessing.Manager().Queue()
-    # self.post_tasks_results_queue = multiprocessing.Manager().Queue()
+    self.run_time = min(sys.maxsize, run_time)
+    self.num_tasks_per_thread = min(sys.maxsize, num_tasks_per_thread)
+    self.num_tasks = min(sys.maxsize, num_tasks)
+    self.observation_interval = observation_interval
 
-    # ToDo: Handle different cases where we need to throw error.
-    if num_tasks != -1:
-      self.num_tasks_per_thread = np.inf
-    else:
-      self.num_tasks = np.inf
+    # Checks on load test setup configuration.
+    if num_tasks_per_thread != sys.maxsize & num_tasks != sys.maxsize:
+      raise Exception("num_tasks_per_thread and num_tasks both can't be passed.")
+
+    if run_time == sys.maxsize & num_tasks_per_thread == sys.maxsize & num_threads == sys.maxsize:
+      raise Exception("Out of run_time, num_tasks_per_thread and num_threads, "
+                      "one has to be passed.")
+
+    # Run time should be at least MIN_RUN_TIME_IN_SECS in all cases even if
+    # num_tasks_per_thread or num_tasks is set.
+    if self.run_time < MIN_RUN_TIME_IN_SECS:
+      logging.warning("run_time should be at least {0}. Overriding it to {0} "
+                      "for this run.".format(MIN_RUN_TIME_IN_SECS))
+      self.run_time = MIN_RUN_TIME_IN_SECS
+
+    if observation_interval < MIN_OBSERVATION_INTERVAL_IN_SECS:
+      raise Exception("observation_interval can't be less than "
+                      "{0}".format(MIN_OBSERVATION_INTERVAL_IN_SECS))
+
+    if observation_interval > (self.run_time / 2):
+      raise Exception("observation_interval can't be more than "
+                      "('run_time' / 2) i.e. {0}".format(self.run_time / 2))
+
 
   @staticmethod
-  def _thread_task(assigned_thread_id, assigned_process_id, num_tasks_per_thread,
-      task, tasks_results_queue, pre_tasks_results_queue,
+  def _thread_task(task, assigned_thread_id, assigned_process_id,
+      num_tasks_per_thread, pre_tasks_results_queue, tasks_results_queue,
       post_tasks_results_queue):
 
     cnt = 0
+    tasks = [task.pre_task, task.task, task.post_task]
+    queues = [pre_tasks_results_queue, tasks_results_queue,
+              post_tasks_results_queue]
     while cnt < num_tasks_per_thread:
-      # ToDo: Shorten/clean the code.
-      start_time = time.perf_counter()
-      result = task.pre_task(assigned_thread_id, assigned_process_id)
-      end_time = time.perf_counter()
-      pre_tasks_results_queue.put((assigned_process_id, assigned_thread_id,
-                                   start_time, end_time, result))
-
-      start_time = time.perf_counter()
-      result = task.task(assigned_thread_id, assigned_process_id)
-      end_time = time.perf_counter()
-      tasks_results_queue.put((assigned_process_id, assigned_thread_id,
-                                   start_time, end_time, result))
-
-      start_time = time.perf_counter()
-      result = task.post_task(assigned_thread_id, assigned_process_id)
-      end_time = time.perf_counter()
-      post_tasks_results_queue.put((assigned_process_id, assigned_thread_id,
-                                   start_time, end_time, result))
-
+      for curr_task, curr_queue in zip(tasks, queues):
+        start_time = time.perf_counter()
+        result = curr_task(assigned_thread_id, assigned_process_id)
+        end_time = time.perf_counter()
+        curr_queue.put((assigned_process_id, assigned_thread_id, start_time,
+                        end_time, result))
       cnt = cnt + 1
 
 
   @staticmethod
-  def _process_task(assigned_process_id, num_threads, num_tasks_per_thread, task,
-      tasks_results_queue, pre_tasks_results_queue, post_tasks_results_queue):
+  def _process_task(task, assigned_process_id, num_threads, num_tasks_per_thread,
+      pre_tasks_results_queue, tasks_results_queue, post_tasks_results_queue):
+
     threads = []
     for thread_num in range(num_threads):
       threads.append(threading.Thread(target=LoadGenerator._thread_task,
-                                      args=(thread_num, assigned_process_id,
+                                      args=(task, thread_num, assigned_process_id,
                                             num_tasks_per_thread,
-                                            task, tasks_results_queue,
                                             pre_tasks_results_queue,
+                                            tasks_results_queue,
                                             post_tasks_results_queue)))
 
     for thread in threads:
@@ -94,22 +100,21 @@ class LoadGenerator:
     pre_tasks_results_queue = multiprocessing.Manager().Queue()
     post_tasks_results_queue = multiprocessing.Manager().Queue()
 
-
     processes = []
     process_pids = []
     for process_id in range(self.num_processes):
       process = multiprocessing.Process(target=LoadGenerator._process_task,
-                                        args=(process_id, self.num_threads,
+                                        args=(task, process_id, self.num_threads,
                                               self.num_tasks_per_thread,
-                                              task, tasks_results_queue,
                                               pre_tasks_results_queue,
+                                              tasks_results_queue,
                                               post_tasks_results_queue))
       processes.append(process)
       process_pids.append(process.pid)
 
     # Ignore the first psutil.cpu_percent call's output.
     psutil.cpu_percent()
-    cpu_per_pts = [psutil.cpu_percent(interval=self.CPU_PERCENT_INTERVAL,
+    cpu_per_pts = [psutil.cpu_percent(interval=self.observation_interval,
                                       percpu=True)]
     net_tcp_conns_pts = [psutil.net_connections(kind='tcp')]
     net_io_pts = [psutil.net_io_counters(pernic=True)]
@@ -119,7 +124,9 @@ class LoadGenerator:
 
     time_pts = [time.perf_counter()]
     while (time_pts[-1] - time_pts[0]) < self.run_time and (tasks_results_queue.qsize() < self.num_tasks):
-      cpu_per_pts.append(psutil.cpu_percent(interval=self.CPU_PERCENT_INTERVAL,
+      # psutil.cpu_percent is blocking call for the process (and its core) in
+      # which it runs.
+      cpu_per_pts.append(psutil.cpu_percent(interval=self.observation_interval,
                                             percpu=True))
       net_tcp_conns_pts.append(psutil.net_connections(kind='tcp'))
       net_io_pts.append(psutil.net_io_counters(pernic=True))
@@ -128,9 +135,9 @@ class LoadGenerator:
     for process in processes:
       process.terminate()
 
-    return {'tasks_results_queue': _convert_multiprocessing_queue_to_list(tasks_results_queue),
-            'pre_tasks_results_queue': _convert_multiprocessing_queue_to_list(pre_tasks_results_queue),
-            'post_tasks_results_queue': _convert_multiprocessing_queue_to_list(post_tasks_results_queue),
+    return {'tasks_results': _convert_multiprocessing_queue_to_list(tasks_results_queue),
+            'pre_tasks_results': _convert_multiprocessing_queue_to_list(pre_tasks_results_queue),
+            'post_tasks_results': _convert_multiprocessing_queue_to_list(post_tasks_results_queue),
             'cpu_per_pts': cpu_per_pts, 'net_io_pts': net_io_pts,
             'net_tcp_conns_pts': net_tcp_conns_pts, 'time_pts': time_pts,
             'process_pids': process_pids}

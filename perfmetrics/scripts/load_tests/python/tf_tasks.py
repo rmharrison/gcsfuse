@@ -22,14 +22,16 @@ class ReadFromOSTask(task.LoadTestTask):
     total_io_bytes = sum([task_result[4]
                           for task_result in kwargs['tasks_results_queue']])
     avg_computed_net_bw = total_io_bytes / metrics['actual_run_time']
+    avg_computed_net_bw = avg_computed_net_bw * (1024 * 1024)
     metrics.update({'avg_computed_net_bw': avg_computed_net_bw})
 
     # dump the results
-    self._dump_results_into_json(metrics, kwargs['output_dir'])
+    output_dir = os.path.join(kwargs['output_dir'], self.TASK_NAME, "")
+    self._dump_results_into_json(metrics, output_dir)
     print("Avg. computed BW: ", metrics['avg_computed_net_bw'])
     print("Avg. download network BW: ", metrics['avg_download_bw'])
     print("Avg. upload network BW: ", metrics['avg_upload_bw'])
-    print("Avg. CPU utilization(%): ", metrics[''])
+    print("Avg. CPU utilization(%): ", metrics['avg_cpu_usage'])
     return {'metrics': metrics}
 
 
