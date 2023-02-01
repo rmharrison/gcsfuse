@@ -3,6 +3,7 @@ Add logging in code to know about progress.
 Add documentation to code.
 Handle todos
 Add reference of classes/constants in docs
+Make the tasks with bs settable wherever possible.
 """
 import json
 import multiprocessing
@@ -33,13 +34,13 @@ class LoadGenerator:
     self.num_tasks = min(sys.maxsize, num_tasks)
     self.observation_interval = observation_interval
 
-    # Checks on load test setup configuration.
-    if num_tasks_per_thread != sys.maxsize & num_tasks != sys.maxsize:
-      raise Exception("num_tasks_per_thread and num_tasks both can't be passed.")
-
-    if run_time == sys.maxsize & num_tasks_per_thread == sys.maxsize & num_threads == sys.maxsize:
+    if self.run_time == sys.maxsize & self.num_tasks_per_thread == sys.maxsize & self.num_tasks == sys.maxsize:
       raise Exception("Out of run_time, num_tasks_per_thread and num_threads, "
                       "one has to be passed.")
+
+    # Checks on load test setup configuration.
+    if self.num_tasks_per_thread != sys.maxsize & self.num_tasks != sys.maxsize:
+      raise Exception("num_tasks_per_thread and num_tasks both can't be passed.")
 
     # Run time should be at least MIN_RUN_TIME_IN_SECS in all cases even if
     # num_tasks_per_thread or num_tasks is set.
@@ -96,10 +97,10 @@ class LoadGenerator:
       thread.daemon = True
       thread.start()
 
-    logging.debug("Threads started for process number: ", assigned_process_id)
+    logging.debug("Threads started for process number: {0}".format(assigned_process_id))
     for thread in threads:
       thread.join()
-    logging.debug("Threads completed for process number: ", assigned_process_id)
+    logging.debug("Threads completed for process number: {0}".format(assigned_process_id))
 
   @staticmethod
   def _convert_multiprocessing_queue_to_list(mp_queue):
@@ -136,7 +137,8 @@ class LoadGenerator:
 
     # time_pts[0] is start time of load generation.
     time_pts = [time.perf_counter()]
-    loading_checkpoints = list(map(lambda t: t * time_pts[0], [1.25, 1.50, 1.75]))
+    loading_percentages = [0.25, 0.50, 0.75]
+    loading_checkpoints = list(map(lambda t: (t * self.run_time) + time_pts[0], [0.25, 0.50, 0.75]))
     curr_loading_idx = 0
     while (time_pts[-1] - time_pts[0]) < self.run_time and (tasks_results_queue.qsize() < self.num_tasks):
       # psutil.cpu_percent is blocking call for the process (and its core) in
@@ -149,10 +151,10 @@ class LoadGenerator:
       curr_time = time.perf_counter()
       time_pts.append(curr_time)
       if curr_loading_idx < len(loading_checkpoints) and curr_time >= loading_checkpoints[curr_loading_idx]:
-        logging.info("Load test completed {0}% for task: ".format(loading_checkpoints[curr_loading_idx] * 100 - 100), task.TASK_NAME)
+        logging.info("Load test completed {0}% for task: {1}".format(loading_percentages[curr_loading_idx] * 100, task.TASK_NAME))
         curr_loading_idx = curr_loading_idx + 1
 
-    logging.info("Load test completed 100% for task: ", task.TASK_NAME)
+    logging.info("Load test completed 100% for task: {0}".format(task.TASK_NAME))
 
     for process in processes:
       process.terminate()
@@ -162,7 +164,7 @@ class LoadGenerator:
             'tasks_results': LoadGenerator._convert_multiprocessing_queue_to_list(tasks_results_queue),
             'pre_tasks_results': LoadGenerator._convert_multiprocessing_queue_to_list(pre_tasks_results_queue),
             'post_tasks_results': LoadGenerator._convert_multiprocessing_queue_to_list(post_tasks_results_queue),
-            'cpu_per_pts': cpu_usage_pts, 'net_io_pts': net_io_pts,
+            'cpu_usage_pts': cpu_usage_pts, 'net_io_pts': net_io_pts,
             'net_tcp_conns_pts': net_tcp_conns_pts, }
 
   def _compute_percentiles(self, data_pts):
@@ -213,7 +215,7 @@ class LoadGenerator:
     avg_download_bw = (download_bytes_pts[-1] - download_bytes_pts[0]) / actual_run_time
 
     # task latency stats
-    task_lat_pts = [result[3] - result[2] for result in observations['tasks_results_queue']]
+    task_lat_pts = [result[3] - result[2] for result in observations['tasks_results']]
     task_lat_pers = self._compute_percentiles(task_lat_pts)
 
     return {'start_time': start_time, 'end_time': end_time,
@@ -243,27 +245,27 @@ class LoadGenerator:
 
     # Latency metrics
     print("\nTasks latencies: ")
-    print("\n\tMinimum (in seconds): ", metrics['task_lat_pers'])
-    print("\n\tMean (in seconds): ", metrics['task_lat_pers'])
-    print("\n\t25th Percentile (in seconds): ",
+    print("\tMinimum (in seconds): ", metrics['task_lat_pers'])
+    print("\tMean (in seconds): ", metrics['task_lat_pers'])
+    print("\t25th Percentile (in seconds): ",
           metrics['task_lat_pers']['25'])
-    print("\n\t50th Percentile (in seconds): ",
+    print("\t50th Percentile (in seconds): ",
           metrics['task_lat_pers']['50'])
-    print("\n\t90th Percentile (in seconds): ",
+    print("\t90th Percentile (in seconds): ",
           metrics['task_lat_pers']['90'])
-    print("\n\t95th Percentile (in seconds): ",
+    print("\t95th Percentile (in seconds): ",
           metrics['task_lat_pers']['95'])
-    print("\n\tMaximum (in seconds): ", metrics['task_lat_pers']['max'])
+    print("\tMaximum (in seconds): ", metrics['task_lat_pers']['max'])
 
     # CPU metrics
     print("\nCPU: ")
-    print("\n\tAvg. CPU usage (%): ", metrics['avg_cpu_usage'])
-    print("\n\tPeak CPU usage (%): ", metrics['cpu_usage_pers']['max'])
+    print("\tAvg. CPU usage (%): ", metrics['avg_cpu_usage'])
+    print("\tPeak CPU usage (%): ", metrics['cpu_usage_pers']['max'])
 
     # Bandwidth metrics
     print("\nNetwork bandwidth (psutil): ")
-    print("\n\tAvg. Upload Bandwidth (MiB/sec): ", metrics['avg_upload_bw'])
-    print("\n\tAvg. Download Bandwidth (MiB/sec): ", metrics['avg_download_bw'])
+    print("\tAvg. Upload Bandwidth (MiB/sec): ", metrics['avg_upload_bw'])
+    print("\tAvg. Download Bandwidth (MiB/sec): ", metrics['avg_download_bw'])
 
   def post_load_test(self, observations, output_dir="./", dump_metrics=True,
       print_metrics=True, **kwargs):
@@ -280,7 +282,7 @@ class LoadGenerator:
 
     # Dump metrics
     if dump_metrics:
-      self._dump_results_into_json(metrics, output_dir)
+      self._dump_metrics_into_json(metrics, output_dir)
       bw_fig.savefig(os.path.join(output_dir, 'bandwidth_variation.png'))
       cpu_fig.savefig(os.path.join(output_dir, 'cpu_variation.png'))
 
