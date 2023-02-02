@@ -32,7 +32,7 @@ class LoadGeneratorForReadAndWriteTask(lg.LoadGenerator):
     logging.info("One file is created per process of size {0} using the format "
                  "{1}".format(file_size, file_path_format))
     for process_num in range(self.num_processes):
-      file_path = file_path_format.format(process_id=process_num)
+      file_path = file_path_format.format(process_num=process_num)
       if os.path.exists(file_path) and os.path.getsize(file_path) == file_size:
         continue
       logging.info("Creating file {0} of size {1}.".format(file_path, file_size))
@@ -65,7 +65,7 @@ class LoadGeneratorForReadAndWriteTask(lg.LoadGenerator):
 
     # print additional metrics
     print("\nNetwork bandwidth (computed by Sum(task response) / actual run time.")
-    print("\tAvg. bandwidth (MiB/sec): ", metrics['avg_computed_net_bw'])
+    print("\tAvg. bandwidth (MiB/sec): \n", metrics['avg_computed_net_bw'])
     return {'metrics': metrics}
 
 

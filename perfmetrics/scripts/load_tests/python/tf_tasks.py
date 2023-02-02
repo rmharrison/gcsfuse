@@ -27,7 +27,7 @@ class GCSFuseRead100MB(task.LoadTestTask):
   TASK_NAME = "gcsfuse_100mb"
 
   TASK_TYPE = "read"
-  FILE_PATH_FORMAT = "/home/ayushsethi/python-tf/fio/gcs/100mb/1_thread.{process_id}.0"
+  FILE_PATH_FORMAT = "/home/ayushsethi/python-tf/fio/gcs/100mb/1_thread.{process_num}.0"
   FILE_SIZE = 100 * 1024 * 1024
 
   def task(self, assigned_process_id, assigned_thread_id):

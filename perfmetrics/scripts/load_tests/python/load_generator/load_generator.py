@@ -234,19 +234,19 @@ class LoadGenerator:
   def _print_default_metrics(self, metrics):
     # Time metrics
     print("\nTime: ")
-    print("\n\tStart time (epoch): ", metrics['start_time'])
-    print("\n\tEnd time (epoch): ", metrics['end_time'])
-    print("\n\tActual run time: ", metrics['actual_run_time'])
+    print("\tStart time (epoch): ", metrics['start_time'])
+    print("\tEnd time (epoch): ", metrics['end_time'])
+    print("\tActual run time (in seconds): ", metrics['actual_run_time'])
 
     # Task related
     print("\nTasks: ")
-    print("\n\tTasks count: ", metrics['tasks_count'])
-    print("\n\tTasks per sec: ", metrics['tasks_per_sec'])
+    print("\tTasks count: ", metrics['tasks_count'])
+    print("\tTasks per sec: ", metrics['tasks_per_sec'])
 
     # Latency metrics
     print("\nTasks latencies: ")
-    print("\tMinimum (in seconds): ", metrics['task_lat_pers'])
-    print("\tMean (in seconds): ", metrics['task_lat_pers'])
+    print("\tMin (in seconds): ", metrics['task_lat_pers']['min'])
+    print("\tMean (in seconds): ", metrics['task_lat_pers']['mean'])
     print("\t25th Percentile (in seconds): ",
           metrics['task_lat_pers']['25'])
     print("\t50th Percentile (in seconds): ",
@@ -255,7 +255,7 @@ class LoadGenerator:
           metrics['task_lat_pers']['90'])
     print("\t95th Percentile (in seconds): ",
           metrics['task_lat_pers']['95'])
-    print("\tMaximum (in seconds): ", metrics['task_lat_pers']['max'])
+    print("\tMax (in seconds): ", metrics['task_lat_pers']['max'])
 
     # CPU metrics
     print("\nCPU: ")
