@@ -10,6 +10,7 @@ import importlib.machinery
 import importlib.util
 from load_generator import load_generator as lg
 from load_generator import task
+import inspect
 
 
 class LoadGeneratorForReadAndWriteTask(lg.LoadGenerator):
@@ -22,23 +23,16 @@ class LoadGeneratorForReadAndWriteTask(lg.LoadGenerator):
       return
 
     if not hasattr(kwargs['task'], 'FILE_PATH_FORMAT') or \
-        not hasattr(kwargs['task'], 'FILE_SIZE'):
-      raise Exception("Task of types - read or write must have FILE_PATH_FORMAT "
-                      "and FILE_SIZE (in bytes) attributes set.")
+        not hasattr(kwargs['task'], 'FILE_SIZE') or not hasattr(kwargs['task'],
+                                                                'create_files'):
+      raise Exception("Task of types - read or write must have FILE_PATH_FORMAT,"
+                      " FILE_SIZE (in bytes) attributes and create_files "
+                      "method set.")
 
-    # Create one file per process for read and write tasks.
     file_path_format = getattr(kwargs['task'], 'FILE_PATH_FORMAT')
     file_size = getattr(kwargs['task'], 'FILE_SIZE')
-    logging.info("One file is created per process of size {0} using the format "
-                 "{1}".format(file_size, file_path_format))
-    for process_num in range(self.num_processes):
-      file_path = file_path_format.format(process_num=process_num)
-      if os.path.exists(file_path) and os.path.getsize(file_path) == file_size:
-        continue
-      logging.info("Creating file {0} of size {1}.".format(file_path, file_size))
-      with open(file_path, "wb") as fp:
-        fp.truncate(file_size)
 
+    kwargs['task'].create_files(file_path_format, file_size, )
     return
 
 
@@ -64,8 +58,9 @@ class LoadGeneratorForReadAndWriteTask(lg.LoadGenerator):
     self._dump_metrics_into_json(metrics, output_dir)
 
     # print additional metrics
-    print("\nNetwork bandwidth (computed by Sum(task response) / actual run time.")
-    print("\tAvg. bandwidth (MiB/sec): \n", metrics['avg_computed_net_bw'])
+    print("\nNetwork bandwidth (computed by Sum(task response) / actual "
+          "run time):")
+    print("\tAvg. bandwidth (MiB/sec): ", metrics['avg_computed_net_bw'], "\n")
     return {'metrics': metrics}
 
 
@@ -128,20 +123,22 @@ def main():
   logging.info("Starting load generation...")
   # args.task_file_path = args.task_file_path.replace(".py", "")
   mod = import_module_using_src_code_path(args.task_file_path)
-  for name, cls in inspect.getmembers(mod, inspect.isclass):
+  mod_classes = [cls for _, cls in inspect.getmembers(mod, inspect.isclass)]
+  for idx, cls in enumerate(mod_classes):
 
     # Skip classes imported in the task file
     if cls.__module__ != mod.__name__:
       continue
-    # Skip classes that are not of type (Todo: add reference here)
-    if not issubclass(cls, task.LoadTestTask):
+    # Skip classes that are not of type (Todo: add reference here) or don't
+    # have implementation.
+    if not issubclass(cls, task.LoadTestTask) or inspect.isabstract(cls):
       continue
     # Skip if user only wants to run for a specific task
     if len(args.task_names) and cls.TASK_NAME not in args.task_names:
       continue
 
     task_obj = cls()
-    logging.info("Running pre load test task for: {0}".format(cls.TASK_NAME))
+    logging.info("\nRunning pre load test task for: {0}".format(cls.TASK_NAME))
     lg_obj.pre_load_test(task=task_obj)
 
     logging.info("Generating load for: {0}".format(cls.TASK_NAME))
@@ -160,8 +157,10 @@ def main():
 
     logging.info("Load test completed for task: {0}".format(cls.TASK_NAME))
 
-    logging.info("Sleeping for {0} seconds...".format(args.cooling_time))
-    time.sleep(args.cooling_time)
+    # don't sleep if it is last test.
+    if idx < (len(mod_classes) - 1):
+      logging.info("Sleeping for {0} seconds...".format(args.cooling_time))
+      time.sleep(args.cooling_time)
 
   return
 
