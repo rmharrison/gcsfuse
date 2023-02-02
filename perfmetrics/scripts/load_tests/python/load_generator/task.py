@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class LoadTestTask(ABC):
 
   TASK_NAME = "ABSTRACT_TASK"
@@ -13,6 +14,3 @@ class LoadTestTask(ABC):
 
   def post_task(self, assigned_process_id, assigned_thread_id):
     pass
-
-
-
