@@ -1,2 +1,2 @@
-pip3 install matplotlib
-pip3 install tensorflow
+matplotlib
+tensorflow
