@@ -77,7 +77,7 @@ def parse_args():
   parser.add_argument(
       '--run-time',
       type=int,
-      default=sys.maxsize,
+      default=600,
       help='Duration in seconds for which to run the load test. Note: (a) The '
       f'load test runs for a minimum of {lg.MIN_OBSERVATION_INTERVAL_IN_SECS} '
       'seconds, irrespective of value passed. (b) The load test may terminate '

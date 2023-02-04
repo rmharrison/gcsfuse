@@ -208,7 +208,7 @@ class TFDataRead16P100MB(TFDataRead):
                      'read.{file_num}.tfrecord'
   FILE_SIZE = 100 * 1024 * 1024
   PREFETCH = 100
-  NUM_PARALLEL_CALLS = -16
+  NUM_PARALLEL_CALLS = 16
   NUM_FILES = 1024
 
   def task(self, assigned_process_id, assigned_thread_id):
@@ -355,7 +355,7 @@ class TFDataRead16P200MB(TFDataRead):
                      'read.{file_num}.tfrecord'
   FILE_SIZE = 200 * 1024 * 1024
   PREFETCH = 200
-  NUM_PARALLEL_CALLS = -16
+  NUM_PARALLEL_CALLS = 16
   NUM_FILES = 1024
 
   def task(self, assigned_process_id, assigned_thread_id):
