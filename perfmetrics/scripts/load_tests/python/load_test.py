@@ -33,10 +33,12 @@ def parse_args():
   Returns:
     Arguments passed through command line set as attributes in args object.
   """
-  parser = argparse.ArgumentParser(description='Script to do Load testing with '
-                                   'given task using multiprocessing and '
-                                   'multithreading on CPU and '
-                                   'other resources.')
+  parser = argparse.ArgumentParser(
+      description='Script to do Load testing with '
+      'given task using multiprocessing and '
+      'multithreading on CPU and '
+      'other resources.',
+      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument(
       '--task-file-path',
       type=str,
