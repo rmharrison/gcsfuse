@@ -66,7 +66,7 @@ def parse_args():
       type=int,
       default=1,
       help='Number of processes to spawn in load tests with --num-threads '
-      'threads where thread runs the task.')
+      'threads where each thread runs the task.')
   parser.add_argument(
       '--num-threads',
       type=int,

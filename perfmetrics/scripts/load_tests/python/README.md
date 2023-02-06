@@ -48,9 +48,11 @@ run load_test.py script with ```--help``` flag.
 
 # Output metrics
 The output of load test contains the following metrics:
-* CPU metrics: Average CPU usage (%), Peak CPU usage (%).
+* CPU metrics: Average CPU usage (%), Peak CPU usage (%) & variation of same 
+over span of load test.
 * Network Bandwidth: Average network upload bandwidth (%), 
-Average network download bandwidth (%).
+Average network download bandwidth (%) & variation of same over span of load
+test.
 * Latencies: Min, mean, max latencies and 25th, 50th, 75th and 95th percentiles 
 of latencies of task performed over span of load test.
 
@@ -112,12 +114,14 @@ Example usage:
 python3 load_test.py --task-file-path python_os.py --num-processes 40 
 --output-dir ~/output --run-time 300
 ```
+Note: If performing GCSFuse tasks (in tf_data.py & python_os.py), make sure the
+bucket is mounted using GCSFuse at /gcs directory.
 
 [tasks]: tasks
 
 # Miscellaneous
 * GCSFuse has to be mounted for using with [python_os.py] tasks.
-* It is recommended to use --num-processes and --num-threads as 1 for 
+* It is recommended to keep --num-processes and --num-threads as 1 for 
 [tf_data.py] tasks as the parallelism is inside those tasks.
 * All the tasks defined under [tasks] directory are marked as read/write tasks.
 So, load_test.py script tries to create files before running actual load tests.
