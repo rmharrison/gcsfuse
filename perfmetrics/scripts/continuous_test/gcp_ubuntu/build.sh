@@ -14,6 +14,7 @@ sudo apt-get install fio -y
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
 # Get the latest commitId of yesterday in the log file
 # commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
+echo "CHECKOUT .... "
 git checkout de495edcaf1839d3a15ea0d00f1cf804f2690cae
 echo Mounting gcs bucket
 mkdir -p gcs
