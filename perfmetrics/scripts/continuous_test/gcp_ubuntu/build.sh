@@ -15,7 +15,8 @@ cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
 # Get the latest commitId of yesterday in the log file
  commitId=$(git log --max-count=1 --pretty=%H)
 echo "CHECKOUT .... "
- git checkout $commitId
+git checkout $commitId
+git diff
 echo Mounting gcs bucket
 mkdir -p gcs
 LOG_FILE=log-$(date '+%Y-%m-%d').txt
