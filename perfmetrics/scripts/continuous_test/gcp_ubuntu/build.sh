@@ -13,7 +13,7 @@ sudo apt-get install fio -y
 
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
 # Get the latest commitId of yesterday in the log file
- commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
+commitId=$(git log --max-count=1 --pretty=%H)
 echo "CHECKOUT .... "
 git checkout $commitId
 git diff
