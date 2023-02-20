@@ -16,6 +16,7 @@ sudo apt-get install fio -y
 echo cd in gcsfuse
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
 # Get the latest commitId of yesterday in the log file
+git config --global --add safe.directory /tmpfs/src/github/gcsfuse
 echo commitID
 commitId=$(git log --max-count=1 --pretty=%H)
 git checkout $commitId
