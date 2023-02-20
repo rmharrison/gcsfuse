@@ -13,8 +13,10 @@ export PATH=$PATH:/usr/local/go/bin
 echo Installing fio
 sudo apt-get install fio -y
 
+echo cd in gcsfuse
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
 # Get the latest commitId of yesterday in the log file
+echo commitID
 commitId=$(git log --before='yesterday 23:59:59' --max-count=1 --pretty=%H)
 git checkout $commitId
 
