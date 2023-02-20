@@ -15,6 +15,8 @@ sudo apt-get install fio -y
 
 echo cd in gcsfuse
 cd "${KOKORO_ARTIFACTS_DIR}/github/gcsfuse"
+# Get the latest commitId of yesterday in the log file
+git config --global --add safe.directory /tmpfs/src/github/gcsfuse
 echo commitID
 commitId=$(git log --max-count=1 --pretty=%H)
 git checkout $commitId
@@ -22,7 +24,7 @@ git checkout $commitId
 echo Building and installing gcsfuse
 go install ./tools/build_gcsfuse
 mkdir $HOME/temp
-$HOME/go/bin/build_gcsfuse ./ $HOME/temp/ $commitId
+$HOME/go/bin/build_gcsfuse --buildvcs=false ./ $HOME/temp/ $commitId
 sudo cp ~/temp/bin/gcsfuse /usr/bin
 sudo cp ~/temp/sbin/mount.gcsfuse /sbin
 
