@@ -7,7 +7,7 @@ echo Installing git
 sudo apt-get install git
 
 # Running test only for when title includes PerfTest
-curl https://api.github.com/repos/GoogleCloudPlatform/gcsfuse/pulls/994 >> pr.json
+curl https://api.github.com/repos/GoogleCloudPlatform/gcsfuse/pulls/997 >> pr.json
 perfTest=$(cat pr.json | grep "PerfTest")
 rm pr.json
 perfTestStr="$perfTest"
