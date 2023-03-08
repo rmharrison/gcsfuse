@@ -10,6 +10,7 @@ sudo apt-get install git
 curl https://api.github.com/repos/GoogleCloudPlatform/gcsfuse/pulls/997 >> pr.json
 echo "perftest"
 perfTest=$(cat pr.json | grep "PerfTest")
+echo "removing"
 rm pr.json
 echo "str"
 perfTestStr="$perfTest"
