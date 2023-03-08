@@ -8,9 +8,12 @@ sudo apt-get install git
 
 # Running test only for when title includes PerfTest
 curl https://api.github.com/repos/GoogleCloudPlatform/gcsfuse/pulls/997 >> pr.json
+echo "perftest"
 perfTest=$(cat pr.json | grep "PerfTest")
 rm pr.json
+echo "str"
 perfTestStr="$perfTest"
+echo "If condition"
 if [[ "$perfTestStr" == *"PerfTest"* ]]
 then
   echo Installing python3-pip
