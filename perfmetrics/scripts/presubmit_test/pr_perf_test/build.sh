@@ -2,10 +2,7 @@
 # It will take approx 80 minutes to run the script.
 sudo apt-get update
 
-echo Installing git
-sudo apt-get install git
-
-# Running test only for when title includes PerfTest
+# Running test only for when PR contains execute-perf-test label
 curl https://api.github.com/repos/GoogleCloudPlatform/gcsfuse/pulls/997 >> pr.json
 perfTest=$(cat pr.json | grep "execute-perf-test")
 rm pr.json
@@ -17,6 +14,8 @@ then
 fi
 
 set -e
+echo Installing git
+sudo apt-get install git
 echo Installing python3-pip
 sudo apt-get -y install python3-pip
 echo Installing libraries to run python script
