@@ -7,10 +7,10 @@ sudo apt-get install git
 
 # Running test only for when title includes PerfTest
 curl https://api.github.com/repos/GoogleCloudPlatform/gcsfuse/pulls/997 >> pr.json
-perfTest=$(cat pr.json | grep "PerfTest")
+perfTest=$(cat pr.json | grep "execute-perf-test")
 rm pr.json
 perfTestStr="$perfTest"
-if [[ "$perfTestStr" != *"PerfTest"* ]]
+if [[ "$perfTestStr" != *"execute-perf-test"* ]]
 then
   echo "No need to execute tests"
   exit 0
